@@ -124,13 +124,13 @@ class Quill {
     this.allowReadOnlyEdits = false;
   }
 
-  addContainer(container, refNode = null) {
+  addContainer(container, refNode = null, parent = this.container) {
     if (typeof container === 'string') {
       const className = container;
       container = document.createElement('div');
       container.classList.add(className);
     }
-    this.container.insertBefore(container, refNode);
+    parent.insertBefore(container, refNode);
     return container;
   }
 

@@ -188,8 +188,8 @@ BaseTheme.DEFAULTS = merge({}, Theme.DEFAULTS, {
 });
 
 class BaseTooltip extends Tooltip {
-  constructor(quill, boundsContainer) {
-    super(quill, boundsContainer);
+  constructor(quill, boundsContainer, attachToBody = false) {
+    super(quill, boundsContainer, attachToBody);
     this.textbox = this.root.querySelector('input[type="text"]');
     this.listen();
   }

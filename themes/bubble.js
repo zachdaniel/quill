@@ -11,7 +11,7 @@ const TOOLBAR_CONFIG = [
 
 class BubbleTooltip extends BaseTooltip {
   constructor(quill, bounds) {
-    super(quill, bounds);
+    super(quill, bounds, true);
     this.quill.on(
       Emitter.events.EDITOR_CHANGE,
       (type, range, oldRange, source) => {
@@ -25,7 +25,7 @@ class BubbleTooltip extends BaseTooltip {
           // Lock our width so we will expand beyond our offsetParent boundaries
           this.root.style.left = '0px';
           this.root.style.width = '';
-          this.root.style.width = `${this.root.offsetWidth}px`;
+          this.root.style.width = `${this.quill.root.clientWidth}px`;
           const lines = this.quill.getLines(range.index, range.length);
           if (lines.length === 1) {
             this.position(this.quill.getBounds(range));
