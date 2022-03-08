@@ -109,11 +109,13 @@ class Quill {
         source,
       );
     });
-    const contents = this.clipboard.convert({
-      html: `${html}<p><br></p>`,
-      text: '\n',
-    });
-    this.setContents(contents);
+    if (html) {
+      const contents = this.clipboard.convert({
+        html: `${html}<p><br></p>`,
+        text: '\n',
+      });
+      this.setContents(contents);
+    }
     this.history.clear();
     if (this.options.placeholder) {
       this.root.setAttribute('data-placeholder', this.options.placeholder);
@@ -249,6 +251,7 @@ class Quill {
     } else {
       bounds = this.selection.getBounds(index.index, index.length);
     }
+    if (!bounds) return null;
     const containerBounds = this.container.getBoundingClientRect();
     return {
       bottom: bounds.bottom - containerBounds.top,
@@ -383,18 +386,13 @@ class Quill {
       () => {
         delta = new Delta(delta);
         const length = this.getLength();
-        const deleted = this.editor.deleteText(0, length);
+        // Quill will set empty editor to \n
+        const delete1 = this.editor.deleteText(0, length);
+        // delta always applied before existing content
         const applied = this.editor.applyDelta(delta);
-        const lastOp = applied.ops[applied.ops.length - 1];
-        if (
-          lastOp != null &&
-          typeof lastOp.insert === 'string' &&
-          lastOp.insert[lastOp.insert.length - 1] === '\n'
-        ) {
-          this.editor.deleteText(this.getLength() - 1, 1);
-          applied.delete(1);
-        }
-        return deleted.compose(applied);
+        // Remove extra \n from empty editor initialization
+        const delete2 = this.editor.deleteText(this.getLength() - 1, 1);
+        return delete1.compose(applied).compose(delete2);
       },
       source,
     );

@@ -152,6 +152,14 @@ class Selection {
     let side = 'left';
     let rect;
     if (node instanceof Text) {
+      // Return null if the text node is empty because it is
+      // not able to get a useful client rect:
+      // https://github.com/w3c/csswg-drafts/issues/2514.
+      // Empty text nodes are most likely caused by TextBlot#optimize()
+      // not getting called when editor content changes.
+      if (!node.data.length) {
+        return null;
+      }
       if (offset < node.data.length) {
         range.setStart(node, offset);
         range.setEnd(node, offset + 1);
@@ -186,6 +194,12 @@ class Selection {
   }
 
   getRange() {
+    const root = this.scroll.domNode;
+    if ('isConnected' in root && !root.isConnected) {
+      // document.getSelection() forces layout on Blink, so we trend to
+      // not calling it.
+      return [null, null];
+    }
     const normalized = this.getNativeRange();
     if (normalized == null) return [null, null];
     const range = this.normalizedToRange(normalized);

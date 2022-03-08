@@ -199,15 +199,19 @@ class Keyboard extends Module {
       // Always deleting newline here, length always 1
       const [prev] = this.quill.getLine(range.index - 1);
       if (prev) {
-        const curFormats = line.formats();
-        const prevFormats = this.quill.getFormat(range.index - 1, 1);
-        formats = AttributeMap.diff(curFormats, prevFormats) || {};
-        if (Object.keys(formats).length > 0) {
-          // line.length() - 1 targets \n in line, another -1 for newline being deleted
-          const formatDelta = new Delta()
-            .retain(range.index + line.length() - 2)
-            .retain(1, formats);
-          delta = delta.compose(formatDelta);
+        const isPrevLineEmpty =
+          prev.statics.blotName === 'block' && prev.length() <= 1;
+        if (!isPrevLineEmpty) {
+          const curFormats = line.formats();
+          const prevFormats = this.quill.getFormat(range.index - 1, 1);
+          formats = AttributeMap.diff(curFormats, prevFormats) || {};
+          if (Object.keys(formats).length > 0) {
+            // line.length() - 1 targets \n in line, another -1 for newline being deleted
+            const formatDelta = new Delta()
+              .retain(range.index + line.length() - 2)
+              .retain(1, formats);
+            delta = delta.compose(formatDelta);
+          }
         }
       }
     }
@@ -240,18 +244,7 @@ class Keyboard extends Module {
   }
 
   handleDeleteRange(range) {
-    const lines = this.quill.getLines(range);
-    let formats = {};
-    if (lines.length > 1) {
-      const firstFormats = lines[0].formats();
-      const lastFormats = lines[lines.length - 1].formats();
-      formats = AttributeMap.diff(lastFormats, firstFormats) || {};
-    }
-    this.quill.deleteText(range, Quill.sources.USER);
-    if (Object.keys(formats).length > 0) {
-      this.quill.formatLine(range.index, 1, formats, Quill.sources.USER);
-    }
-    this.quill.setSelection(range.index, Quill.sources.SILENT);
+    deleteRange({ range, quill: this.quill });
     this.quill.focus();
   }
 
@@ -275,13 +268,6 @@ class Keyboard extends Module {
     this.quill.updateContents(delta, Quill.sources.USER);
     this.quill.setSelection(range.index + 1, Quill.sources.SILENT);
     this.quill.focus();
-
-    Object.keys(context.format).forEach(name => {
-      if (lineFormats[name] != null) return;
-      if (Array.isArray(context.format[name])) return;
-      if (name === 'code' || name === 'link') return;
-      this.quill.format(name, context.format[name], Quill.sources.USER);
-    });
   }
 }
 
@@ -479,10 +465,8 @@ Keyboard.DEFAULTS = {
       shiftKey: null,
       collapsed: true,
       format: {
-        list: false,
         'code-block': false,
         blockquote: false,
-        header: false,
         table: false,
       },
       prefix: /^\s*?(\d+\.|-|\*|\[ ?\]|\[x\])$/,
@@ -707,6 +691,22 @@ function normalize(binding) {
   return binding;
 }
 
+// TODO: Move into quill.js or editor.js
+function deleteRange({ quill, range }) {
+  const lines = quill.getLines(range);
+  let formats = {};
+  if (lines.length > 1) {
+    const firstFormats = lines[0].formats();
+    const lastFormats = lines[lines.length - 1].formats();
+    formats = AttributeMap.diff(lastFormats, firstFormats) || {};
+  }
+  quill.deleteText(range, Quill.sources.USER);
+  if (Object.keys(formats).length > 0) {
+    quill.formatLine(range.index, 1, formats, Quill.sources.USER);
+  }
+  quill.setSelection(range.index, Quill.sources.SILENT);
+}
+
 function tableSide(table, row, cell, offset) {
   if (row.prev == null && row.next == null) {
     if (cell.prev == null && cell.next == null) {
@@ -723,4 +723,4 @@ function tableSide(table, row, cell, offset) {
   return null;
 }
 
-export { Keyboard as default, SHORTKEY, normalize };
+export { Keyboard as default, SHORTKEY, normalize, deleteRange };

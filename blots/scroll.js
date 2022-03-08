@@ -1,4 +1,4 @@
-import { Scope, ScrollBlot, ContainerBlot } from 'parchment';
+import { Scope, ScrollBlot, ContainerBlot, LeafBlot } from 'parchment';
 import Emitter from '../core/emitter';
 import Block, { BlockEmbed } from './block';
 import Break from './break';
@@ -103,7 +103,11 @@ class Scroll extends ScrollBlot {
   }
 
   leaf(index) {
-    return this.path(index).pop() || [null, -1];
+    const last = this.path(index).pop();
+    if (!last || !(last[0] instanceof LeafBlot)) {
+      return [null, -1];
+    }
+    return last;
   }
 
   line(index) {
@@ -164,6 +168,10 @@ class Scroll extends ScrollBlot {
     if (!Array.isArray(mutations)) {
       mutations = this.observer.takeRecords();
     }
+    mutations = mutations.filter(({ target }) => {
+      const blot = this.find(target, true);
+      return blot && blot.scroll === this;
+    });
     if (mutations.length > 0) {
       this.emitter.emit(Emitter.events.SCROLL_BEFORE_UPDATE, source, mutations);
     }
